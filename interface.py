@@ -1,6 +1,7 @@
 import sys
 import urwid
 from IPython import embed_kernel
+from imap_provider import IMAPProvider
 
 class FolderList(urwid.ListBox):
     def __init__(self, main):
@@ -50,9 +51,31 @@ class MessageView(urwid.ListBox):
                                                      urwid.Text('Subject: '), urwid.Divider(), urwid.Text('Body') ])
         super(MessageView,self).__init__(self.message)
 
+class LoginView(urwid.Filler):
+    def __init__(self, main):
+        self.main = main
+        self.server = urwid.Edit('Server:   ','')
+        self.username = urwid.Edit('Username: ','')
+        self.password = urwid.Edit('Password: ','',mask='*')
+        self.login = urwid.Button('Login',on_press=self.do_login,user_data={'server':self.server.get_edit_text(),
+                                                                            'username':self.username.get_edit_text(),
+                                                                            'password':self.password.get_edit_text()})
+        self.body = urwid.Pile([ self.server,
+                                 self.username,
+                                 self.password,
+                                 self.login ])
+        self.focus_item = 0
+        super(LoginView,self).__init__(self.body)
+
+    def do_login(self, button, user_data):
+        print user_data
+        #raise urwid.ExitMainLoop()
+
+
 class Main(object):
     def __init__(self, **kwargs):
-        self.stack = [FolderList(self)]
+        self.logged_in = False
+        self.stack = [LoginView(self)]
         self.frame = urwid.Frame(self.stack[-1],
                                  urwid.Text('Status: '))
         self.loop = urwid.MainLoop(self.frame,
