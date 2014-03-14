@@ -5,15 +5,40 @@ import urwid
 import sys
 from imap_provider import IMAPProvider
 
+class FolderListBox(urwid.ListBox):
+    def __init__(self, view):
+        self.view = view
+        self.body = urwid.SimpleFocusListWalker(self.get_folders())
+        super(FolderListBox,self).__init__(self.body)
+
+    def get_folders(self):
+        folders = self.view.provider.list_folders()
+        self.folders = [FolderListItem(folder,self.view_folder) for folder in folders]
+        return self.folders
+
+
 class FolderListItem(urwid.Button):
-    def  __init__(self, name):
-        super(FolderListItem, self).__init__("")
-        urwid.connect_signal(self, 'click', self.update_label)
+    def  __init__(self, folder, callback)
+        self.name = folder
+        self.callback = callback
+        urwid.connect_signal(self, 'click', self.open_folder)
         self._w = urwid.AttrMap(urwid.SelectableIcon(name, 1), None,
 				focus_map='reversed')
+        super(FolderListItem, self).__init__(self.name)
+
+    def open_folder(self, button):
+        self.
 
     def update_label(self, user_data):
         self.set_label('%s-1' % self.label)
+
+
+class MessageListBox(urwid.ListBox):
+    def __init__(self,view):
+        self.view = view
+        self.body = urwid.SimpleFocusListWalker([])
+        super(MessageListBox,self).__init__(self.body)
+
 
 class MessageListItem(urwid.Button):
     def __init__(self, _id, email):
@@ -32,40 +57,13 @@ class MessageListItem(urwid.Button):
         send_date = self._email['Date']
         return "%s|%s|%s" % (type(send_date),sender,subject)
 
-def update_message_list(widget,folder):
-    status_bar.set_text("Switching to folder: %s" % folder)
-    while len(message_list.original_widget.body) > 0:
-        message_list.original_widget.body.pop()
-    for message in provider.get_messages_in_folder(folder):
-        message_list.original_widget.body.append(MessageListItem(
-						     message['uid'],
-						     message['email']))
-
-def update_message_view(_id,email):
-    status_bar.set_text("Viewing Message ID: %s" % _id)
-    while len(message_view.original_widget.body) > 0:
-        message_view.original_widget.body.pop()
-    for n in range(1,10):
-        message_view.original_widget.body.append(urwid.Text("%s" % email))
-
-def unhandled_input(key):
-    if key == 'ctrl q':
-        raise urwid.EndMainLoop()
-
-class FolderListBox(urwid.ListBox):
-    def __init__(self):
-        self.body = urwid.SimpleFocusListWalker([])
-        super(FolderListBox,self).__init__(self.body)
-
-class MessageListBox(urwid.ListBox):
-    def __init__(self):
-        self.body = urwid.SimpleFocusListWalker([])
-        super(MessageListBox,self).__init__(self.body)
 
 class MessageViewBox(urwid.ListBox):
-    def __init__(self):
+    def __init__(self,view):
+        self.view = view
         self.body = urwid.SimpleFocusListWalker([])
         super(MessageViewBox,self).__init__(self.body)
+
 
 class LoginView(urwid.Frame):
     def __init__(self, main):
@@ -118,9 +116,9 @@ class EmailView(urwid.Frame):
         self.provider = provider
         self.logged_in = True
         self.footer = urwid.Text('')
-        self.folder_list = urwid.LineBox(FolderListBox())
-        self.message_list = urwid.LineBox(MessageListBox())
-        self.message_view = urwid.LineBox(MessageViewBox())
+        self.folder_list = urwid.LineBox(FolderListBox(self))
+        self.message_list = urwid.LineBox(MessageListBox(self))
+        self.message_view = urwid.LineBox(MessageViewBox(self))
         self.message_pane = urwid.Pile([("weight",1,self.message_list),
                                         ("weight",1,self.message_view)])
         self.columns = urwid.Columns([("weight",1,self.folder_list),
@@ -130,6 +128,9 @@ class EmailView(urwid.Frame):
 
     def set_status(self, message):
         self.footer.set_text(message)
+
+    def view_folder(self, folder):
+        pass
 
 
 class Main(object):
