@@ -4,13 +4,17 @@ from IPython import embed_kernel
 from imap_provider import IMAPProvider
 
 class FolderList(urwid.ListBox):
-    def __init__(self, main):
+    def __init__(self, main, root):
         self.main = main
-        self.list = self.get_folders()
+        self.root_path=root
+        self.list = self.update_folders()
         super(FolderList,self).__init__(self.list)
 
-    def get_folders(self):
-        return urwid.SimpleFocusListWalker([ FolderListItem("Folder %s" % name, self.main) for name in range(1,20) ])
+    def update_folders(self):
+        folders = urwid.SimpleFocusListWalker([])
+        for folder in self.main.provider.list_folders():
+            folders.append(FolderListItem(folder,self.main))
+        return folders
 
 
 class FolderListItem(urwid.Button):
@@ -31,7 +35,8 @@ class MessageList(urwid.ListBox):
         super(MessageList,self).__init__(self.msg_list)
 
     def get_messages(self, folder):
-        self.msg_list = urwid.SimpleFocusListWalker([ MessageListItem("Email: %s" % message, main) for message in range(1,20) ])
+        self.msg_list = urwid.SimpleFocusListWalker(
+                [ MessageListItem("Email: %s" % message, main) for message in range(1,20) ])
 
 
 class MessageListItem(urwid.Button):
@@ -44,22 +49,28 @@ class MessageListItem(urwid.Button):
     def open_message(self, email):
         self.main.push_view(MessageView(email,self.main))
 
+
 class MessageView(urwid.ListBox):
     def __init__(self, email, main):
         self.main = main
-        self.message = urwid.SimpleFocusListWalker([ urwid.Text('From:'), urwid.Text('To: '), urwid.Text('Date: '),
-                                                     urwid.Text('Subject: '), urwid.Divider(), urwid.Text('Body') ])
+        self.message = urwid.SimpleFocusListWalker([ urwid.Text('From:'), 
+                                                     urwid.Text('To: '), 
+                                                     urwid.Text('Date: '),
+                                                     urwid.Text('Subject: '), 
+                                                     urwid.Divider(), 
+                                                     urwid.Text('Body') ])
+
         super(MessageView,self).__init__(self.message)
 
 class LoginView(urwid.Filler):
     def __init__(self, main):
         self.main = main
-        self.server = urwid.Edit('Server:   ','')
-        self.username = urwid.Edit('Username: ','')
+        self.status_bar = urwid.Text('')
+        self.server = urwid.Edit('Server:   ','mail.tangentlabs.co.uk')
+        self.username = urwid.Edit('Username: ','david.dyball@tangentlabs.co.uk')
         self.password = urwid.Edit('Password: ','',mask='*')
-        self.login = urwid.Button('Login',on_press=self.do_login,user_data={'server':self.server.get_edit_text(),
-                                                                            'username':self.username.get_edit_text(),
-                                                                            'password':self.password.get_edit_text()})
+        self.login = urwid.Button('Login',
+                                  on_press=self.submit_login)
         self.body = urwid.Pile([ self.server,
                                  self.username,
                                  self.password,
@@ -67,17 +78,25 @@ class LoginView(urwid.Filler):
         self.focus_item = 0
         super(LoginView,self).__init__(self.body)
 
-    def do_login(self, button, user_data):
-        print user_data
-        #raise urwid.ExitMainLoop()
+    def submit_login(self, button):
+        (result, msg) = self.main.provider.do_login(self.server.edit_text,
+                                                    self.username.edit_text,
+                                                    self.password.edit_text)
+        if not result:
+            self.main.set_status('ERROR: {}'.format(msg))
+        else:
+            self.main.set_status('Login Successful')
+            self.main.push_view(FolderList(self.main))
 
 
 class Main(object):
     def __init__(self, **kwargs):
+        self.provider = IMAPProvider()
         self.logged_in = False
+        self.status = urwid.Text('Status: ')
         self.stack = [LoginView(self)]
         self.frame = urwid.Frame(self.stack[-1],
-                                 urwid.Text('Status: '))
+                                 self.status)
         self.loop = urwid.MainLoop(self.frame,
                                    unhandled_input=self.unhandled_input)
         if 'debug' in kwargs:
@@ -97,6 +116,9 @@ class Main(object):
 
     def update_view(self):
         self.loop.widget.set_body(self.stack[-1])
+
+    def set_status(self, message):
+        self.status.set_text('Status: {}'.format(message))
 
     def unhandled_input(self, key):
         if key == "<" or key == "b":

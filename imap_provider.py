@@ -4,9 +4,13 @@ import getpass
 import os
 
 class IMAPProvider(object):
-    def __init__(self, server=None, username=None, password=None, use_ssl=False, **kwargs):
-        self.server = IMAPClient(server,use_uid=True,ssl=use_ssl)
-        self.server.login(username,password)
+    def login(self, server, username, password, use_ssl=False, **kwargs):
+        try:
+            self.server = IMAPClient(server,use_uid=True,ssl=use_ssl)
+            self.server.login(username,password)
+        except Exception as e:
+            return (False, e.message)
+        return (True, 'Login Successful')
 
     def list_folders(self):
         """
