@@ -7,55 +7,119 @@ from imap_provider import IMAPProvider
 
 class FolderListBox(urwid.ListBox):
     def __init__(self, view):
+        """
+        Widget to display a list of email folders
+
+        :param view: A reference to the current view owning this widget
+        :type view: an urwid.Widget
+
+        :returns: instance of FolderListBox widget
+        :type: urwid.Widget
+        """
         self.view = view
         self.body = urwid.SimpleFocusListWalker(self.get_folders())
         super(FolderListBox,self).__init__(self.body)
 
     def get_folders(self):
+        """
+        Retrieve a list of IMAP folders from self.view.provider
+
+        :returns: A list of FolderListItem instances
+        :rtype: [ FolderListItem(), ]
+        """
         folders = self.view.provider.list_folders()
         self.folders = [FolderListItem(folder,self.view_folder) for folder in folders]
         return self.folders
 
+    def view_folder(self, folder):
+        """
+        Open a folders contents in FolderListBox
+        
+        :param folder: The button triggering this callback
+        :type folder: pmc.FolderListItem
+        """
+        self.view.set_status('%s Opened' % folder.folder)
+        self.reset_selections()
+        folder.select()
+
+    def reset_selections(self):
+        """
+        Iterate through the available folders and reset their
+        font settings/highlighting
+        """
+        for folder in self.body:
+            folder.deselect()
+
 
 class FolderListItem(urwid.Button):
-    def  __init__(self, folder, callback)
-        self.name = folder
-        self.callback = callback
-        urwid.connect_signal(self, 'click', self.open_folder)
-        self._w = urwid.AttrMap(urwid.SelectableIcon(name, 1), None,
+    def  __init__(self, folder, callback):
+        """
+        Folder Item for display in FolderListBox
+
+        :param folder: Name of the folder this object represents
+        :type folder: str
+
+        :param callback: Function to call when clicked
+        :type callback: function
+
+        :returns: Instance
+        :rtype: pmc.FolderListItem
+        """
+        self.folder = folder
+        urwid.connect_signal(self, 'click', callback)
+        self._w = urwid.AttrMap(urwid.SelectableIcon(folder, 1), None,
 				focus_map='reversed')
-        super(FolderListItem, self).__init__(self.name)
+        super(FolderListItem, self).__init__(self.folder)
 
-    def open_folder(self, button):
-        self.
+    def select(self):
+        """
+        Toggle the font settings for this folder item so it shows
+        as selected (bold)
+        """
+        self.set_label(self.folder)
 
-    def update_label(self, user_data):
-        self.set_label('%s-1' % self.label)
+    def deselect(self):
+        """
+        Toggle the font settings for this folder item so it shows
+        as normal
+        """
+        self.set_label(('reversed',self.folder))
 
 
 class MessageListBox(urwid.ListBox):
     def __init__(self,view):
         self.view = view
-        self.body = urwid.SimpleFocusListWalker([])
+        self.messages = self.get_messages('INBOX')
+        self.body = urwid.SimpleFocusListWalker(self.messages)
         super(MessageListBox,self).__init__(self.body)
+
+    def get_messages(self, folder):
+        messages = []
+        for msg in self.view.provider.get_messages_in_folder(folder):
+            messages.append(MessageListItem(msg['uid'],
+                                            msg['email'],
+                                            self.display_message))
+        return messages
+
+    def display_message(self, button):
+        pass
 
 
 class MessageListItem(urwid.Button):
-    def __init__(self, _id, email):
+    def __init__(self, _id, email, callback):
         super(MessageListItem, self).__init__("")
         self._id = _id
         self._email = email
         self._name = self.get_message_details()
-        urwid.connect_signal(self, 'click', update_message_view,
-			     self._email)
+        urwid.connect_signal(self, 'click', callback)
         self._w = urwid.AttrMap(urwid.SelectableIcon(self._name, 1), 
 				None, focus_map='reversed')
 
     def get_message_details(self):
-        sender = self._email['From']
-        subject = self._email['Subject']
-        send_date = self._email['Date']
-        return "%s|%s|%s" % (type(send_date),sender,subject)
+        sender = self._email.get('From')
+        subject = self._email.get('Subject')
+        send_date = self._email.get('Date')
+        return "%s  |  %s  |  %s" % (type(send_date),sender,subject)
 
 
 class MessageViewBox(urwid.ListBox):
@@ -109,12 +173,21 @@ class LoginView(urwid.Frame):
     def set_status(self, message):
         self.footer.set_text(message)
 
-     
+
+
 class EmailView(urwid.Frame):
     def __init__(self, main, provider):
+        """
+        EmailView
+        :param main: pmc.Main() object
+        :param provider: IMAPProvider() object
+        """
+        # Set 
         self.main = main
         self.provider = provider
         self.logged_in = True
+
+
         self.footer = urwid.Text('')
         self.folder_list = urwid.LineBox(FolderListBox(self))
         self.message_list = urwid.LineBox(MessageListBox(self))
@@ -126,15 +199,68 @@ class EmailView(urwid.Frame):
         self.body = self.columns
         super(EmailView, self).__init__(self.body,urwid.Text('Hotkeys:'),self.footer)
 
+    def focus_folderlist(self):
+        """
+        Set Focus to the FolderListBox Widget
+        """
+        self.focus_item = self.folder_list
+
+    def focus_messagelist(self):
+        """
+        Set Focus to the MessageListBox Widget
+        """
+        self.focus_item = self.message_list
+
+    def focus_messageview(self):
+        """
+        Set Focus to the MessageViewBox Widget
+        """
+        self.focus_item = self.message_view
+
     def set_status(self, message):
+        """
+        Update Status Bar Message
+
+        :param message: (str) Message to display
+        """
         self.footer.set_text(message)
 
     def view_folder(self, folder):
+        """
+        Display contents of :param folder: in MessageListBox
+
+        :param folder: Folder to display the contents of
+        :type folder: str
+        """
+        pass
+
+    def toggle_messagelist(self):
+        """
+        Show/Hide the MessageListBox widget
+        """
+        pass
+
+    def toggle_folderlist(self):
+        """
+        Show/Hide the FolderListBox widget
+        """
+        pass
+
+    def toggle_messageview(self):
+        """
+        Show/Hide the MessageViewBox widget
+        """
         pass
 
 
 class Main(object):
     def __init__(self, **kwargs):
+        """
+        pmc.Main Application Object
+
+        :param debug: Whether to enable ipython kernel
+        :type debug: bool
+        """
         self.palette = [('reversed','standout','')]
         self.stack = [LoginView(self)]
         self.loop = urwid.MainLoop(self.stack[-1],
@@ -144,25 +270,46 @@ class Main(object):
                 embed_ipython_kernel()
 
     def push_view(self, view):
+        """
+        Add View object to main application stack
+
+        :param view: View to add to the stack
+        :type view: urwid.Widget()
+        """
         self.stack.append(view)
         self.update_view()
 
     def pop_view(self):
+        """
+        Remove top-most widget off of the stack
+        """
         self.stack.pop()
         self.update_view()
 
     def update_view(self):
+        """
+        Set Main.body to the top-most widget in the stack
+        """
         if len(self.stack) < 1:
             raise urwid.ExitMainLoop()
             print "Stack Empty. Exiting...."
         self.loop.widget.set_body(self.stack[-1])
 
     def unhandled_input(self, key):
+        """
+        Capture and process key-input
+
+        :param key: key pressed
+        :type key: str
+        """
         if key == "Q":
             raise urwid.ExitMainLoop()
             print "User Initiated Quit. Exiting...."
 
     def run(self):
+        """
+        Run the Main application
+        """
         self.loop.run()
 
 
