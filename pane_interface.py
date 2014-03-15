@@ -5,7 +5,24 @@ import urwid
 import sys
 from imap_provider import IMAPProvider
 
-class FolderListBox(urwid.ListBox):
+class ViewPane(urwid.ListBox):
+    def __init__(self, view, body):
+        """
+        :param view: A reference to the parent view
+        :type view: instance(EmailView)
+        """
+        self.view = view
+        self.show = True
+        super(ViewPane, self).__init__(body)
+
+    def toggle_view(self):
+        if self.show:
+            self.show = False
+        else:
+            self.show = True
+
+
+class FolderListBox(ViewPane):
     def __init__(self, view):
         """
         Widget to display a list of email folders
@@ -16,9 +33,9 @@ class FolderListBox(urwid.ListBox):
         :returns: instance of FolderListBox widget
         :type: urwid.Widget
         """
-        self.view = view
+        self.body = urwid.SimpleFocusListWalker([])
+        super(FolderListBox,self).__init__(view, self.body)
         self.body = urwid.SimpleFocusListWalker(self.get_folders())
-        super(FolderListBox,self).__init__(self.body)
 
     def get_folders(self):
         """
@@ -86,12 +103,11 @@ class FolderListItem(urwid.Button):
         self.set_label(('reversed',self.folder))
 
 
-class MessageListBox(urwid.ListBox):
+class MessageListBox(ViewPane):
     def __init__(self,view):
-        self.view = view
+        super(MessageListBox,self).__init__(view,urwid.SimpleFocusListWalker([]))
         self.messages = self.get_messages('INBOX')
         self.body = urwid.SimpleFocusListWalker(self.messages)
-        super(MessageListBox,self).__init__(self.body)
 
     def get_messages(self, folder):
         messages = []
@@ -122,12 +138,18 @@ class MessageListItem(urwid.Button):
         return "%s  |  %s  |  %s" % (type(send_date),sender,subject)
 
 
-class MessageViewBox(urwid.ListBox):
+class MessageViewBox(ViewPane):
     def __init__(self,view):
         self.view = view
         self.body = urwid.SimpleFocusListWalker([])
-        super(MessageViewBox,self).__init__(self.body)
+        super(MessageViewBox,self).__init__(view,self.body)
 
+class View(urwid.Frame):
+    def __init__(self, main):
+        self.main = main
+    
+    def unhandled_input(self, key):
+        pass
 
 class LoginView(urwid.Frame):
     def __init__(self, main):
@@ -174,7 +196,6 @@ class LoginView(urwid.Frame):
         self.footer.set_text(message)
 
 
-
 class EmailView(urwid.Frame):
     def __init__(self, main, provider):
         """
@@ -182,7 +203,6 @@ class EmailView(urwid.Frame):
         :param main: pmc.Main() object
         :param provider: IMAPProvider() object
         """
-        # Set 
         self.main = main
         self.provider = provider
         self.logged_in = True
@@ -192,12 +212,36 @@ class EmailView(urwid.Frame):
         self.folder_list = urwid.LineBox(FolderListBox(self))
         self.message_list = urwid.LineBox(MessageListBox(self))
         self.message_view = urwid.LineBox(MessageViewBox(self))
-        self.message_pane = urwid.Pile([("weight",1,self.message_list),
-                                        ("weight",1,self.message_view)])
-        self.columns = urwid.Columns([("weight",1,self.folder_list),
-                                      ("weight",2,self.message_pane)])
-        self.body = self.columns
+        self.rebuild_view()
         super(EmailView, self).__init__(self.body,urwid.Text('Hotkeys:'),self.footer)
+
+    def keypress(self, size, key):
+        """
+        Handle Keypresses or pass to super.keypress()
+        """
+        if key == "v":
+            self.focus_messageview()
+            self.set_status('Message View Focused')
+        elif key == "f":
+            self.focus_folderlist()
+            self.set_status('Folder-List Focused')
+        elif key == "l":
+            self.focus_messagelist()
+            self.set_status('Message-List Focused')
+        elif key == "ctrl f":
+            self.folder_list.base_widget.toggle_view()
+            self.set_status('Folder-List Toggled (%s)' % self.folder_list.base_widget.show)
+        elif key == "ctrl l":
+            self.message_list.base_widget.toggle_view()
+            self.set_status('Message-List Toggled (%s)' % self.message_list.base_widget.show)
+        elif key == "ctrl v":
+            self.message_view.base_widget.toggle_view()
+            self.set_status('Message View Toggled (%s)' % self.message_view.base_widget.show)
+        else:
+            return super(EmailView,self).keypress(size,key)
+
+        self.rebuild_view()
+        self._invalidate()
 
     def focus_folderlist(self):
         """
@@ -238,19 +282,43 @@ class EmailView(urwid.Frame):
         """
         Show/Hide the MessageListBox widget
         """
-        pass
+        self.message_list.toggle_view()
+        self.rebuild_view()
 
     def toggle_folderlist(self):
         """
         Show/Hide the FolderListBox widget
         """
-        pass
+        self.folder_list.toggle_view()
+        self.rebuild_view()
 
     def toggle_messageview(self):
         """
         Show/Hide the MessageViewBox widget
         """
-        pass
+        self.message_view.toggle_view()
+        self.rebuild_view()
+
+    def rebuild_view(self):
+        """
+        Rebuild the pane interface showing/hiding
+        items depending on toggled status
+        """
+
+        pile = urwid.Pile([])
+        if self.message_list.base_widget.show:
+            pile.contents.append((self.message_list,
+                                  pile.options('weight',1)))
+        if self.message_view.base_widget.show:
+            pile.contents.append((self.message_view,
+                                  pile.options("weight",1)))
+        self.message_pane = pile
+
+        columns = urwid.Columns([('weight',2,self.message_pane)])
+        if self.folder_list.base_widget.show:
+            columns.contents.insert(0,(self.folder_list,
+                                       columns.options("weight",1)))
+        self.body = columns
 
 
 class Main(object):
@@ -261,7 +329,10 @@ class Main(object):
         :param debug: Whether to enable ipython kernel
         :type debug: bool
         """
-        self.palette = [('reversed','standout','')]
+        self.palette = [('reversed',    'standout',''),
+                        ('normal',      'white','black'),
+                        ('highlighted', 'black','white'),
+                        ]
         self.stack = [LoginView(self)]
         self.loop = urwid.MainLoop(self.stack[-1],
                                    unhandled_input=self.unhandled_input)
