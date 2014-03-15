@@ -212,6 +212,8 @@ class EmailView(urwid.Frame):
         self.folder_list = urwid.LineBox(FolderListBox(self))
         self.message_list = urwid.LineBox(MessageListBox(self))
         self.message_view = urwid.LineBox(MessageViewBox(self))
+        self.columns = urwid.Columns([])
+        self.message_pane = urwid.Pile([])
         self.rebuild_view()
         super(EmailView, self).__init__(self.body,urwid.Text('Hotkeys:'),self.footer)
 
@@ -246,20 +248,46 @@ class EmailView(urwid.Frame):
     def focus_folderlist(self):
         """
         Set Focus to the FolderListBox Widget
+
+        - Toggle Folder list if hidden
+        - Set EmailView focus to body
+        - Set LHS columns focus to Folder List
         """
-        self.focus_item = self.folder_list
+        if not self.folder_list.base_widget.show:
+            self.folder_list.base_widget.show = True
+            self.rebuild_view()
+        self.focus_item = self.body
+        self.columns.set_focus(0)
 
     def focus_messagelist(self):
         """
         Set Focus to the MessageListBox Widget
+
+        - Toggle Message list if hidden
+        - Set EmailView focus to body
+        - Set RHS columns focus to Message List
         """
-        self.focus_item = self.message_list
+        if not self.message_list.base_widget.show:
+            self.message_list.base_widget.show = True
+            self.rebuild_view()
+        self.focus_item = self.body
+        self.columns.set_focus(1)
+        self.message_pane.set_focus(0)
 
     def focus_messageview(self):
         """
         Set Focus to the MessageViewBox Widget
+
+        - Toggle Message view if hidden
+        - Set EmailView focus to body
+        - Set RHS columns focus to Message view
         """
-        self.focus_item = self.message_view
+        if not self.message_view.base_widget.show:
+            self.message_view.base_widget.show = True
+            self.rebuild_view()
+        self.focus_item = self.body
+        self.columns.set_focus(1)
+        self.message_pane.set_focus(1)
 
     def set_status(self, message):
         """
@@ -305,20 +333,20 @@ class EmailView(urwid.Frame):
         items depending on toggled status
         """
 
-        pile = urwid.Pile([])
+        self.message_pane = urwid.Pile([])
         if self.message_list.base_widget.show:
-            pile.contents.append((self.message_list,
-                                  pile.options('weight',1)))
+            self.message_pane.contents.append((self.message_list,
+                                               self.message_pane.options('weight',1)))
         if self.message_view.base_widget.show:
-            pile.contents.append((self.message_view,
-                                  pile.options("weight",1)))
-        self.message_pane = pile
-
-        columns = urwid.Columns([('weight',2,self.message_pane)])
+            self.message_pane.contents.append((self.message_view,
+                                               self.message_pane.options("weight",1)))
+        self.columns.contents = []
+        self.columns.contents.insert(0,(self.message_pane,
+                                        self.columns.options("weight",2)))
         if self.folder_list.base_widget.show:
-            columns.contents.insert(0,(self.folder_list,
-                                       columns.options("weight",1)))
-        self.body = columns
+            self.columns.contents.insert(0,(self.folder_list,
+                                         self.columns.options("weight",1)))
+        self.body = self.columns
 
 
 class Main(object):
