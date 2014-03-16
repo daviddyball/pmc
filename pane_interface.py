@@ -82,11 +82,11 @@ class FolderListItem(urwid.Button):
         :returns: Instance
         :rtype: pmc.FolderListItem
         """
+        super(FolderListItem, self).__init__(folder)
         self.folder = folder
         urwid.connect_signal(self, 'click', callback)
-        self._w = urwid.AttrMap(urwid.SelectableIcon(folder, 1), None,
-				focus_map='reversed')
-        super(FolderListItem, self).__init__(self.folder)
+        self._w = urwid.AttrMap(urwid.SelectableIcon(folder, 2), None,
+				'highlighted')
 
     def select(self):
         """
@@ -257,7 +257,7 @@ class EmailView(urwid.Frame):
             self.folder_list.base_widget.show = True
             self.rebuild_view()
         self.focus_item = self.body
-        self.columns.set_focus(0)
+        self.columns.set_focus(self.folder_list)
 
     def focus_messagelist(self):
         """
@@ -271,8 +271,8 @@ class EmailView(urwid.Frame):
             self.message_list.base_widget.show = True
             self.rebuild_view()
         self.focus_item = self.body
-        self.columns.set_focus(1)
-        self.message_pane.set_focus(0)
+        self.columns.set_focus(self.message_pane)
+        self.message_pane.set_focus(self.message_list)
 
     def focus_messageview(self):
         """
@@ -286,8 +286,8 @@ class EmailView(urwid.Frame):
             self.message_view.base_widget.show = True
             self.rebuild_view()
         self.focus_item = self.body
-        self.columns.set_focus(1)
-        self.message_pane.set_focus(1)
+        self.columns.set_focus(self.message_pane)
+        self.message_pane.set_focus(self.message_view)
 
     def set_status(self, message):
         """
@@ -362,7 +362,7 @@ class Main(object):
                         ('highlighted', 'black','white'),
                         ]
         self.stack = [LoginView(self)]
-        self.loop = urwid.MainLoop(self.stack[-1],
+        self.loop = urwid.MainLoop(self.stack[-1],self.palette,
                                    unhandled_input=self.unhandled_input)
         if 'debug' in kwargs:
             if kwargs['debug']:
