@@ -3,6 +3,7 @@ import datetime
 import getpass
 import urwid
 import sys
+from test_provider import TestProvider
 from imap_provider import IMAPProvider
 
 class ViewPane(urwid.ListBox):
@@ -156,7 +157,7 @@ class LoginView(urwid.Frame):
         self.main = main
         self.server = urwid.Edit('','mail.tangentlabs.co.uk')
         self.username = urwid.Edit('','david.dyball@tangentlabs.co.uk')
-        self.password = urwid.Edit(mask='*')
+        self.password = urwid.Edit('',mask='*')
         self.login_button = urwid.Button('Login',on_press=self.do_login)
         self.footer = urwid.Text('Status:')
         self.labels = urwid.Pile([ urwid.Text('Server Name:',align="right"),
@@ -168,7 +169,7 @@ class LoginView(urwid.Frame):
                                    self.login_button])
         self.body = urwid.Filler(urwid.Columns([self.labels,urwid.Padding(self.edits)],
                                                 dividechars=1))
-        super(LoginView, self).__init__(self.body,footer=self.footer)        
+        super(LoginView, self).__init__(self.body,footer=self.footer)
 
     def do_login(self, button):
         # Validate Fields
@@ -256,8 +257,7 @@ class EmailView(urwid.Frame):
         if not self.folder_list.base_widget.show:
             self.folder_list.base_widget.show = True
             self.rebuild_view()
-        self.focus_item = self.body
-        self.columns.set_focus(self.folder_list)
+        self.set_focus_path(['body',0]) #self.folder_list.base_widget.get_focus_path())
 
     def focus_messagelist(self):
         """
@@ -270,9 +270,7 @@ class EmailView(urwid.Frame):
         if not self.message_list.base_widget.show:
             self.message_list.base_widget.show = True
             self.rebuild_view()
-        self.focus_item = self.body
-        self.columns.set_focus(self.message_pane)
-        self.message_pane.set_focus(self.message_list)
+        self.set_focus_path(['body',1,0])
 
     def focus_messageview(self):
         """
@@ -285,9 +283,7 @@ class EmailView(urwid.Frame):
         if not self.message_view.base_widget.show:
             self.message_view.base_widget.show = True
             self.rebuild_view()
-        self.focus_item = self.body
-        self.columns.set_focus(self.message_pane)
-        self.message_pane.set_focus(self.message_view)
+        self.set_focus_path(['body',1,1])
 
     def set_status(self, message):
         """
@@ -361,12 +357,20 @@ class Main(object):
                         ('normal',      'white','black'),
                         ('highlighted', 'black','white'),
                         ]
-        self.stack = [LoginView(self)]
-        self.loop = urwid.MainLoop(self.stack[-1],self.palette,
-                                   unhandled_input=self.unhandled_input)
+
+        self.stack = []
+
         if 'debug' in kwargs:
             if kwargs['debug']:
-                embed_ipython_kernel()
+                self.stack.append(EmailView(self,TestProvider()))
+                #embed_ipython_kernel(self)
+            else:
+                self.stack.append(LoginView(self))
+        else:
+            self.stack.append(LoginView(self))
+
+        self.loop = urwid.MainLoop(self.stack[-1],self.palette,
+                                   unhandled_input=self.unhandled_input)
 
     def push_view(self, view):
         """
