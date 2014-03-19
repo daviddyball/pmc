@@ -140,3 +140,18 @@ class MessageViewBox(ViewPane):
         self.view = view
         self.body = urwid.SimpleFocusListWalker([])
         super(MessageViewBox,self).__init__(view,self.body)
+
+class SearchBox(urwid.Edit):
+    """
+    Search pane, context specific
+    """
+    def __init__(self, caption='', edit_text='',callback=None):
+        self.callback = callback
+        super(SearchBox,self).__init__(caption,edit_text)
+
+    def set_edit_text(self, text):
+        if text.endswith('\n'):
+            if self.callback is not None:
+                self.callback(text)
+        else:
+            super(SearchBox,self).set_edit_text(text)

@@ -39,13 +39,19 @@ class EmailView(urwid.Frame):
             self.set_status('Message-List Focused')
         elif key == "ctrl f":
             self.folder_list.base_widget.toggle_view()
+            self.rebuild_view()
             self.set_status('Folder-List Toggled (%s)' % self.folder_list.base_widget.show)
         elif key == "ctrl l":
             self.message_list.base_widget.toggle_view()
+            self.rebuild_view()
             self.set_status('Message-List Toggled (%s)' % self.message_list.base_widget.show)
         elif key == "ctrl v":
             self.message_view.base_widget.toggle_view()
+            self.rebuild_view()
             self.set_status('Message View Toggled (%s)' % self.message_view.base_widget.show)
+        elif key == "/":
+            self.start_search()
+            self.set_status('Search: ')
         else:
             return super(EmailView,self).keypress(size,key)
 
@@ -148,3 +154,6 @@ class EmailView(urwid.Frame):
             self.columns.contents.insert(0,(self.folder_list,
                                          self.columns.options("weight",1)))
         self.body = self.columns
+
+    def start_search(self):
+        pass
