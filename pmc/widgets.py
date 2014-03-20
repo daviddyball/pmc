@@ -18,6 +18,9 @@ class ViewPane(urwid.ListBox):
         else:
             self.show = True
 
+    def search(self, text):
+        pass
+
 
 class FolderListBox(ViewPane):
     def __init__(self, view):
@@ -148,6 +151,9 @@ class SearchBox(urwid.Edit):
     def __init__(self, caption='', edit_text='',callback=None):
         self.callback = callback
         super(SearchBox,self).__init__(caption,edit_text)
+
+    def keypress(self, size, key):
+        if key == "Esc"
 
     def set_edit_text(self, text):
         if text.endswith('\n'):

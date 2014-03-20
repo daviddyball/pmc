@@ -15,12 +15,12 @@ class EmailView(urwid.Frame):
         self.logged_in = True
 
 
-        self.folder_list = urwid.LineBox(FolderListBox(self))
-        self.message_list = urwid.LineBox(MessageListBox(self))
-        self.message_view = urwid.LineBox(MessageViewBox(self))
+        self.folder_list = FolderListBox(self)
+        self.message_list = MessageListBox(self)
+        self.message_view = MessageViewBox(self)
         self.columns = urwid.Columns([])
         self.message_pane = urwid.Pile([])
-        self.footer = urwid.Text('')
+        self.footer = urwid.Edit('Status: ','')
         self.rebuild_view()
         super(EmailView, self).__init__(self.body,footer=self.footer)
 
@@ -38,17 +38,17 @@ class EmailView(urwid.Frame):
             self.focus_messagelist()
             self.set_status('Message-List Focused')
         elif key == "ctrl f":
-            self.folder_list.base_widget.toggle_view()
+            self.folder_list.toggle_view()
             self.rebuild_view()
-            self.set_status('Folder-List Toggled (%s)' % self.folder_list.base_widget.show)
+            self.set_status('Folder-List Toggled (%s)' % self.folder_list.show)
         elif key == "ctrl l":
-            self.message_list.base_widget.toggle_view()
+            self.message_list.toggle_view()
             self.rebuild_view()
-            self.set_status('Message-List Toggled (%s)' % self.message_list.base_widget.show)
+            self.set_status('Message-List Toggled (%s)' % self.message_list.show)
         elif key == "ctrl v":
-            self.message_view.base_widget.toggle_view()
+            self.message_view.toggle_view()
             self.rebuild_view()
-            self.set_status('Message View Toggled (%s)' % self.message_view.base_widget.show)
+            self.set_status('Message View Toggled (%s)' % self.message_view.show)
         elif key == "/":
             self.start_search()
             self.set_status('Search: ')
@@ -65,8 +65,8 @@ class EmailView(urwid.Frame):
         - Set EmailView focus to body
         - Set LHS columns focus to Folder List
         """
-        if not self.folder_list.base_widget.show:
-            self.folder_list.base_widget.show = True
+        if not self.folder_list.show:
+            self.folder_list.show = True
             self.rebuild_view()
         self.set_focus_path(['body',0,0])
 
@@ -78,8 +78,8 @@ class EmailView(urwid.Frame):
         - Set EmailView focus to body
         - Set RHS columns focus to Message List
         """
-        if not self.message_list.base_widget.show:
-            self.message_list.base_widget.show = True
+        if not self.message_list.show:
+            self.message_list.show = True
             self.rebuild_view()
         self.set_focus_path(['body',1,0])
 
@@ -91,8 +91,8 @@ class EmailView(urwid.Frame):
         - Set EmailView focus to body
         - Set RHS columns focus to Message view
         """
-        if not self.message_view.base_widget.show:
-            self.message_view.base_widget.show = True
+        if not self.message_view.show:
+            self.message_view.show = True
             self.rebuild_view()
         self.set_focus_path(['body',1,1])
 
@@ -102,7 +102,7 @@ class EmailView(urwid.Frame):
 
         :param message: (str) Message to display
         """
-        self.footer.set_text(message)
+        self.footer.set_caption(message)
 
     def view_folder(self, folder):
         """
@@ -141,19 +141,44 @@ class EmailView(urwid.Frame):
         """
 
         self.message_pane = urwid.Pile([])
-        if self.message_list.base_widget.show:
-            self.message_pane.contents.append((self.message_list,
+        if self.message_list.show:
+            self.message_pane.contents.append((urwid.LineBox(self.message_list),
                                                self.message_pane.options('weight',1)))
-        if self.message_view.base_widget.show:
-            self.message_pane.contents.append((self.message_view,
+        if self.message_view.show:
+            self.message_pane.contents.append((urwid.LineBox(self.message_view),
                                                self.message_pane.options("weight",1)))
         self.columns.contents = []
         self.columns.contents.insert(0,(self.message_pane,
                                         self.columns.options("weight",2)))
-        if self.folder_list.base_widget.show:
-            self.columns.contents.insert(0,(self.folder_list,
+        if self.folder_list.show:
+            self.columns.contents.insert(0,(urwid.LineBox(self.folder_list),
                                          self.columns.options("weight",1)))
         self.body = self.columns
 
     def start_search(self):
-        pass
+        # Retrieve the current in-focus widget 
+        # (for context-aware searching)
+        #self.main.loop.screen.stop()
+        w = self.body
+        for p in self.body.get_focus_path():
+            print "Working on type(%s)" % type(w)
+            print " focus is %s" % type(w.focus)
+            if p != w.focus_position:
+                print "%s != %s" % (p,w.focus_position)
+                w.focus_position = p
+            if not issubclass(type(w.focus.base_widget), urwid.WidgetContainerMixin):
+                break
+            w = w.focus.base_widget
+        #import ipdb; ipdb.set_trace()
+        #self.main.loop.screen.start()
+        if isinstance(w,FolderListBox):
+            self.footer = SearchBox('Search for Folder: ','',self.folder_list.search)
+            self.set_focus('footer')
+        elif isinstance(w,MessageListBox):
+            self.footer = SearchBox('Search for Message: ','',self.folder_list.search)
+            self.set_focus('footer')
+        elif isinstance(w,MessageViewBox):
+            self.footer = SearchBox('Search Message: ','',self.folder_list.search)
+            self.set_focus('footer')
+        else:
+            self.set_status('Unknown Widget Type. Cannot Search')
