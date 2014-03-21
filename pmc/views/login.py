@@ -3,6 +3,7 @@ import urwid
 import sys
 from pmc.providers.test import TestProvider
 from pmc.providers.imap import IMAPProvider
+from pmc.views.email import EmailView
 
 class LoginView(urwid.Frame):
     def __init__(self, main):

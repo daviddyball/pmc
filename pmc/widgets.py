@@ -1,5 +1,6 @@
 from IPython import embed_kernel as embed_ipython_kernel
 import datetime
+import re
 import urwid
 
 class ViewPane(urwid.ListBox):
@@ -10,6 +11,7 @@ class ViewPane(urwid.ListBox):
         """
         self.view = view
         self.show = True
+        self.search_caption = 'Search: '
         super(ViewPane, self).__init__(body)
 
     def toggle_view(self):
@@ -19,6 +21,9 @@ class ViewPane(urwid.ListBox):
             self.show = True
 
     def search(self, text):
+        self.view.main.loop.screen.stop()
+        import ipdb; ipdb.set_trace()
+        self.view.main.loop.screen.start()
         pass
 
 
@@ -33,6 +38,7 @@ class FolderListBox(ViewPane):
         :returns: instance of FolderListBox widget
         :type: urwid.Widget
         """
+        self.view = view
         self.body = urwid.SimpleFocusListWalker([])
         super(FolderListBox,self).__init__(view, self.body)
         self.body = urwid.SimpleFocusListWalker(self.get_folders())
@@ -67,6 +73,29 @@ class FolderListBox(ViewPane):
         for folder in self.body:
             folder.deselect()
 
+    def search(self, text, case_sensitive=False):
+        """
+        Search through the self.contents list and set focus to the first item
+        who's :param folder: attribute matches :param text:
+        """
+        items = list(enumerate(self.body))
+        ordered = items[self.focus_position + 1:] + items[:self.focus_position]
+        for index, item in ordered:
+            if item.name.startswith(text):
+                self.set_focus(index)
+                self.view.set_status('Found')
+                break
+        else:
+            self.view.set_status('No Match Found')
+        
+
+    def reverse_search(self, text, case_sensitive=False):
+        """
+        Reverse search self.contents looking for a FolderListItem
+        who's :param folder: attribute matches :param text:.
+        """
+        self.contents
+
 
 class FolderListItem(urwid.Button):
     def  __init__(self, folder, callback):
@@ -82,10 +111,13 @@ class FolderListItem(urwid.Button):
         :returns: Instance
         :rtype: pmc.FolderListItem
         """
-        super(FolderListItem, self).__init__(folder)
-        self.folder = folder
+        
+        self.display_label = re.sub('.+?/','  ',folder)
+        self.name = folder.split('/')[-1]
+        self.path = folder
+        super(FolderListItem, self).__init__(self.display_label)
         urwid.connect_signal(self, 'click', callback)
-        self._w = urwid.AttrMap(urwid.SelectableIcon(folder, 2), None,
+        self._w = urwid.AttrMap(urwid.SelectableIcon(self.display_label, 2), None,
 				'highlighted')
 
     def select(self):
@@ -93,14 +125,14 @@ class FolderListItem(urwid.Button):
         Toggle the font settings for this folder item so it shows
         as selected (bold)
         """
-        self.set_label(self.folder)
+        self.set_label(self.display_label)
 
     def deselect(self):
         """
         Toggle the font settings for this folder item so it shows
         as normal
         """
-        self.set_label(('reversed',self.folder))
+        self.set_label(('reversed',self.display_label))
 
 
 class MessageListBox(ViewPane):
@@ -144,20 +176,62 @@ class MessageViewBox(ViewPane):
         self.body = urwid.SimpleFocusListWalker([])
         super(MessageViewBox,self).__init__(view,self.body)
 
-class SearchBox(urwid.Edit):
+class StatusBar(urwid.Edit):
     """
-    Search pane, context specific
+    Status display + Search pane (context aware)
+
+    :param view: parent view (used to switch focus back when done)
+    :type view: pmc.views.BaseView
     """
-    def __init__(self, caption='', edit_text='',callback=None):
-        self.callback = callback
-        super(SearchBox,self).__init__(caption,edit_text)
+    def __init__(self, view, caption='',edit_text=''):
+        self.view = view
+        self.callback = None
+        super(StatusBar,self).__init__(caption,edit_text)
+
+    def get_user_input(self, caption='Input: ', edit_text='', callback = None):
+        """
+        Get user input and return result to "callback" for handling
+
+        :param caption: Text to set in Edit.caption for this widget
+        :type caption: str
+
+        :param callback: Function to return the input text to for handling
+        :type callback: func
+        """
+        if not callback:
+            self.set_caption('No Callback Assigned to get_user_input')
+            self.set_edit_text('')
+            self.view.set_focus('body')
+        else:
+            self.callback = callback
+            self.set_caption(caption)
+            self.view.set_focus('footer')
 
     def keypress(self, size, key):
-        if key == "Esc"
+        """
+        Override keypress to allow for cancelling an action with Esc
+        """
+        #self.view.main.loop.screen.stop()
+        #import ipdb; ipdb.set_trace()
+        #self.view.main.loop.screen.start()
+        if key == "esc":
+            self.set_edit_text('')
+            self.set_caption('Cancelled')
+            self.view.set_focus('body')
+        elif key == "enter":
+            callback = self.callback
+            self.callback = None
+            submit_text = self.edit_text
+            self.set_edit_text('')
+            self.set_caption(self.caption + submit_text )
+            callback(submit_text)
+            self.view.set_focus('body')
+        else:
+            super(StatusBar,self).keypress(size,key)
 
     def set_edit_text(self, text):
         if text.endswith('\n'):
             if self.callback is not None:
                 self.callback(text)
         else:
-            super(SearchBox,self).set_edit_text(text)
+            super(StatusBar,self).set_edit_text(text)

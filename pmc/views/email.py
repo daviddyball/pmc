@@ -20,7 +20,8 @@ class EmailView(urwid.Frame):
         self.message_view = MessageViewBox(self)
         self.columns = urwid.Columns([])
         self.message_pane = urwid.Pile([])
-        self.footer = urwid.Edit('Status: ','')
+        self.status_bar = StatusBar(self,'','')
+        self.footer= self.status_bar
         self.rebuild_view()
         super(EmailView, self).__init__(self.body,footer=self.footer)
 
@@ -50,8 +51,7 @@ class EmailView(urwid.Frame):
             self.rebuild_view()
             self.set_status('Message View Toggled (%s)' % self.message_view.show)
         elif key == "/":
-            self.start_search()
-            self.set_status('Search: ')
+            self.trigger_search()
         else:
             return super(EmailView,self).keypress(size,key)
 
@@ -155,30 +155,18 @@ class EmailView(urwid.Frame):
                                          self.columns.options("weight",1)))
         self.body = self.columns
 
-    def start_search(self):
+    def trigger_search(self):
+        """
+        Start a search operation by determining the in-focus widget and
+        setting focus to self.status_bar (urwid.Edit), passing in the in-focus
+        widgets "search" function.
+        """
         # Retrieve the current in-focus widget 
-        # (for context-aware searching)
-        #self.main.loop.screen.stop()
         w = self.body
         for p in self.body.get_focus_path():
-            print "Working on type(%s)" % type(w)
-            print " focus is %s" % type(w.focus)
             if p != w.focus_position:
-                print "%s != %s" % (p,w.focus_position)
                 w.focus_position = p
             if not issubclass(type(w.focus.base_widget), urwid.WidgetContainerMixin):
                 break
             w = w.focus.base_widget
-        #import ipdb; ipdb.set_trace()
-        #self.main.loop.screen.start()
-        if isinstance(w,FolderListBox):
-            self.footer = SearchBox('Search for Folder: ','',self.folder_list.search)
-            self.set_focus('footer')
-        elif isinstance(w,MessageListBox):
-            self.footer = SearchBox('Search for Message: ','',self.folder_list.search)
-            self.set_focus('footer')
-        elif isinstance(w,MessageViewBox):
-            self.footer = SearchBox('Search Message: ','',self.folder_list.search)
-            self.set_focus('footer')
-        else:
-            self.set_status('Unknown Widget Type. Cannot Search')
+        self.status_bar.get_user_input(w.search_caption,'', w.search)
