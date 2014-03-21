@@ -12,7 +12,7 @@ class LoginView(urwid.Frame):
         self.username = urwid.Edit('','david.dyball@tangentlabs.co.uk')
         self.password = urwid.Edit('',mask='*')
         self.login_button = urwid.Button('Login',on_press=self.do_login)
-        self.footer = urwid.Text('Status:')
+        self.footer = urwid.Text('')
         self.labels = urwid.Pile([ urwid.Text('Server Name:',align="right"),
                                    urwid.Text('Username:',align="right"),
                                    urwid.Text('Password:',align="right")])

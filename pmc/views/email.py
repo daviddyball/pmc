@@ -1,7 +1,10 @@
 from IPython import embed_kernel as embed_ipython_kernel
 import urwid
 import sys
-from pmc.widgets import *
+from pmc.widgets.folderlist import FolderList
+from pmc.widgets.messagelist import MessageList
+from pmc.widgets.messageview import MessageView
+from pmc.widgets.statusbar import StatusBar
 
 class EmailView(urwid.Frame):
     def __init__(self, main, provider):
@@ -15,9 +18,9 @@ class EmailView(urwid.Frame):
         self.logged_in = True
 
 
-        self.folder_list = FolderListBox(self)
-        self.message_list = MessageListBox(self)
-        self.message_view = MessageViewBox(self)
+        self.folder_list = FolderList(self)
+        self.message_list = MessageList(self)
+        self.message_view = MessageView(self)
         self.columns = urwid.Columns([])
         self.message_pane = urwid.Pile([])
         self.status_bar = StatusBar(self,'','')
@@ -29,15 +32,22 @@ class EmailView(urwid.Frame):
         """
         Handle Keypresses or pass to super.keypress()
         """
-        if key == "v":
-            self.focus_messageview()
-            self.set_status('Message View Focused')
-        elif key == "f":
-            self.focus_folderlist()
-            self.set_status('Folder-List Focused')
-        elif key == "l":
-            self.focus_messagelist()
-            self.set_status('Message-List Focused')
+        if key == ":":
+            self.start_command()
+        #elif key == "v":
+        #    self.focus_messageview()
+        #    self.set_status('Message View Focused')
+        #elif key == "f":
+        #    self.focus_folderlist()
+        #    self.set_status('Folder-List Focused')
+        #elif key == "l":
+        #    self.focus_messagelist()
+        #    self.set_status('Message-List Focused')
+        #
+        #elif key == "ctrl up":
+        #elif key == "ctrl down":
+        #elif key == "ctrl left":
+        #elif key == "ctrl right":
         elif key == "ctrl f":
             self.folder_list.toggle_view()
             self.rebuild_view()
@@ -155,13 +165,11 @@ class EmailView(urwid.Frame):
                                          self.columns.options("weight",1)))
         self.body = self.columns
 
-    def trigger_search(self):
+    def get_focused_widget(self):
         """
-        Start a search operation by determining the in-focus widget and
-        setting focus to self.status_bar (urwid.Edit), passing in the in-focus
-        widgets "search" function.
+        Iterate across the focus path and return the in-focus
+        widget
         """
-        # Retrieve the current in-focus widget 
         w = self.body
         for p in self.body.get_focus_path():
             if p != w.focus_position:
@@ -169,4 +177,29 @@ class EmailView(urwid.Frame):
             if not issubclass(type(w.focus.base_widget), urwid.WidgetContainerMixin):
                 break
             w = w.focus.base_widget
-        self.status_bar.get_user_input(w.search_caption,'', w.search)
+        return w
+
+    def trigger_search(self):
+        """
+        Start a search operation by determining the in-focus widget and
+        setting focus to self.status_bar (urwid.Edit), passing in the in-focus
+        widgets "search" function.
+        """
+        # Retrieve the current in-focus widget 
+        w = self.get_focused_widget()
+        if getattr(w,'search',None) is None:
+            return
+        else:
+            self.status_bar.get_user_input(w.search_caption,'',
+                                           w.search)
+            
+
+    def start_command(self):
+        """
+        Toggle command mode, get input and run
+        """
+        key = self.status_bar.get_user_input('Command: ','',
+                                             self.run_command)
+
+    def run_command(self, command):
+        self.set_status('({})'.format(command))

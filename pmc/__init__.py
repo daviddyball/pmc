@@ -55,7 +55,7 @@ class Main(object):
         if len(self.stack) < 1:
             raise urwid.ExitMainLoop()
             print "Stack Empty. Exiting...."
-        self.loop.widget.set_body(self.stack[-1])
+        self.loop.widget = self.stack[-1]
 
     def unhandled_input(self, key):
         """
