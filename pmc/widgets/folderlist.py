@@ -18,6 +18,7 @@ class FolderList(ViewPane):
         self.body = urwid.SimpleFocusListWalker([])
         super(FolderList,self).__init__(view, self.body)
         self.body = urwid.SimpleFocusListWalker(self.get_folders())
+        self.search_caption = 'Search Folders: '
 
     def get_folders(self):
         """
@@ -70,7 +71,15 @@ class FolderList(ViewPane):
         Reverse search self.contents looking for a FolderListItem
         who's :param folder: attribute matches :param text:.
         """
-        self.contents
+        items = list(enumerate(self.body))
+        ordered = reversed(items[self.focus_position + 1:] + items[:self.focus_position])
+        for index, item in ordered:
+            if item.name.startswith(text):
+                self.set_focus(index)
+                self.view.set_status('Found')
+                break
+        else:
+            self.view.set_status('No Match Found')
 
 
 class FolderListItem(urwid.Button):

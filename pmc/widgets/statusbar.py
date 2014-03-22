@@ -11,6 +11,7 @@ class StatusBar(urwid.Edit):
     :type view: pmc.views.BaseView
     """
     def __init__(self, view, caption='',edit_text=''):
+        self.last_input = ''
         self.view = view
         self.callback = None
         super(StatusBar,self).__init__(caption,edit_text)
@@ -45,7 +46,7 @@ class StatusBar(urwid.Edit):
         elif key == "enter":
             callback = self.callback
             self.callback = None
-            submit_text = self.edit_text
+            submit_text = self.edit_text or self.last_input
             self.set_edit_text('')
             self.set_caption(self.caption + submit_text )
             callback(submit_text)

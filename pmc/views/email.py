@@ -62,6 +62,8 @@ class EmailView(urwid.Frame):
             self.set_status('Message View Toggled (%s)' % self.message_view.show)
         elif key == "/":
             self.trigger_search()
+        elif key == "?":
+            self.trigger_search(reverse=True)
         else:
             return super(EmailView,self).keypress(size,key)
 
@@ -179,7 +181,7 @@ class EmailView(urwid.Frame):
             w = w.focus.base_widget
         return w
 
-    def trigger_search(self):
+    def trigger_search(self, reverse=False):
         """
         Start a search operation by determining the in-focus widget and
         setting focus to self.status_bar (urwid.Edit), passing in the in-focus
@@ -187,19 +189,28 @@ class EmailView(urwid.Frame):
         """
         # Retrieve the current in-focus widget 
         w = self.get_focused_widget()
-        if getattr(w,'search',None) is None:
-            return
+        if reverse:
+            if getattr(w,'reverse_search',None) is None:
+                return
+            callback = w.reverse_search
         else:
-            self.status_bar.get_user_input(w.search_caption,'',
-                                           w.search)
+            if getattr(w,'search',None) is None:
+                return
+            callback = w.search
+
+        self.status_bar.get_user_input(w.search_caption,'',
+                                       callback)
             
 
     def start_command(self):
         """
-        Toggle command mode, get input and run
+        Toggle command mode, get input to pass to run_command()
         """
         key = self.status_bar.get_user_input('Command: ','',
                                              self.run_command)
 
     def run_command(self, command):
+        """
+        Run :param command:
+        """
         self.set_status('({})'.format(command))
