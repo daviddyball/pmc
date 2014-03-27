@@ -9,6 +9,7 @@ class MessageList(ViewPane):
         super(MessageList,self).__init__(view,urwid.SimpleFocusListWalker([]))
         self.messages = self.get_messages('INBOX')
         self.body = urwid.SimpleFocusListWalker(self.messages)
+        import ipdb; ipdb.set_trace()
 
     def get_messages(self, folder):
         messages = []
@@ -31,9 +32,10 @@ class MessageListItem(urwid.Button):
         urwid.connect_signal(self, 'click', callback)
         self._w = urwid.AttrMap(urwid.SelectableIcon(self._name, 1), 
 				None, focus_map='reversed')
+        self._w.base_widget.set_wrap_mode('clip')
 
     def get_message_details(self):
         sender = self._email.get('From')
         subject = self._email.get('Subject')
         send_date = self._email.get('Date')
-        return "%s  |  %s  |  %s" % (type(send_date),sender,subject)
+        return "%s  |  %s  |  %s" % (send_date,sender,subject)
