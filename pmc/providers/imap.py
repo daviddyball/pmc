@@ -45,7 +45,8 @@ class IMAPProvider(object):
                     messages.append({'uid': uid,
                                      'folder': folder,
                                      'flags': raw_messages[uid]['FLAGS'],
-                                     'email': email.message_from_string(raw_messages[uid]['RFC822'])
+                                     'email': email.message_from_string(
+                                                raw_messages[uid]['RFC822'])
                                      })
                 except:
                     pass

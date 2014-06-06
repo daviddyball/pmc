@@ -9,7 +9,6 @@ class MessageList(ViewPane):
         super(MessageList,self).__init__(view,urwid.SimpleFocusListWalker([]))
         self.messages = self.get_messages('INBOX')
         self.body = urwid.SimpleFocusListWalker(self.messages)
-        import ipdb; ipdb.set_trace()
 
     def get_messages(self, folder):
         messages = []
@@ -19,8 +18,9 @@ class MessageList(ViewPane):
                                             self.display_message))
         return messages
 
-    def display_message(self, button):
-        pass
+    def display_message(self, message):
+        self.view.set_status('Opened Message ID: %s' % message._id)
+        self.view.view_message(message._id)
 
 
 class MessageListItem(urwid.Button):

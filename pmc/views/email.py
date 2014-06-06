@@ -123,6 +123,10 @@ class EmailView(urwid.Frame):
         :param folder: Folder to display the contents of
         :type folder: str
         """
+        self.message_list.get_messages(folder)
+        self.focus_message_list()
+
+    def view_message(self, message_id):
         pass
 
     def toggle_messagelist(self):
