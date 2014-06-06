@@ -18,8 +18,9 @@ class MessageList(ViewPane):
                                             self.display_message))
         return messages
 
-    def display_message(self, button):
-        pass
+    def display_message(self, message):
+        self.view.set_status('Opened Message ID: %s' % message._id)
+        self.view.view_message(message._id)
 
 
 class MessageListItem(urwid.Button):
@@ -31,9 +32,10 @@ class MessageListItem(urwid.Button):
         urwid.connect_signal(self, 'click', callback)
         self._w = urwid.AttrMap(urwid.SelectableIcon(self._name, 1), 
 				None, focus_map='reversed')
+        self._w.base_widget.set_wrap_mode('clip')
 
     def get_message_details(self):
         sender = self._email.get('From')
         subject = self._email.get('Subject')
         send_date = self._email.get('Date')
-        return "%s  |  %s  |  %s" % (type(send_date),sender,subject)
+        return "%s  |  %s  |  %s" % (send_date,sender,subject)

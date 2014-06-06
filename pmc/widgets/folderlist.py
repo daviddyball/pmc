@@ -38,9 +38,9 @@ class FolderList(ViewPane):
         :param folder: The button triggering this callback
         :type folder: pmc.FolderListItem
         """
-        self.view.set_status('%s Opened' % folder.folder)
+        self.view.set_status('%s Opened' % folder.name)
         self.reset_selections()
-        folder.select()
+        self.view.message_list.get_messages(folder)
 
     def reset_selections(self):
         """
