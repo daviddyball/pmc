@@ -11,21 +11,24 @@ class MessageList(ViewPane):
         self.body = urwid.SimpleFocusListWalker(self.messages)
 
     def get_messages(self, folder):
+        self.folder = folder
         messages = []
         for msg in self.view.provider.get_messages_in_folder(folder):
-            messages.append(MessageListItem(msg['uid'],
+            messages.append(MessageListItem(folder,
+                                            msg['uid'],
                                             msg['email'],
                                             self.display_message))
         return messages
 
     def display_message(self, message):
         self.view.set_status('Opened Message ID: %s' % message._id)
-        self.view.view_message(message._id)
+        self.view.view_message(message)
 
 
 class MessageListItem(urwid.Button):
-    def __init__(self, _id, email, callback):
+    def __init__(self, folder, _id, email, callback):
         super(MessageListItem, self).__init__("")
+        self._folder = folder
         self._id = _id
         self._email = email
         self._name = self.get_message_details()

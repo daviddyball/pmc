@@ -34,16 +34,16 @@ class EmailView(urwid.Frame):
         """
         if key == ":":
             self.start_command()
-        #elif key == "v":
-        #    self.focus_messageview()
-        #    self.set_status('Message View Focused')
-        #elif key == "f":
-        #    self.focus_folderlist()
-        #    self.set_status('Folder-List Focused')
-        #elif key == "l":
-        #    self.focus_messagelist()
-        #    self.set_status('Message-List Focused')
-        #
+        elif key == "v":
+            self.focus_messageview()
+            self.set_status('Message View Focused')
+        elif key == "f":
+            self.focus_folderlist()
+            self.set_status('Folder-List Focused')
+        elif key == "l":
+            self.focus_messagelist()
+            self.set_status('Message-List Focused')
+        
         #elif key == "ctrl up":
         #elif key == "ctrl down":
         #elif key == "ctrl left":
@@ -126,8 +126,10 @@ class EmailView(urwid.Frame):
         self.message_list.get_messages(folder)
         self.focus_message_list()
 
-    def view_message(self, message_id):
-        pass
+    def view_message(self, message):
+        msg = self.provider.get_message('INBOX',message._id)
+        self.message_view.set_content(msg)
+        self.focus_messageview()
 
     def toggle_messagelist(self):
         """
