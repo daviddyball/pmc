@@ -6,8 +6,8 @@ import os
 class IMAPProvider(object):
     def login(self, server, username, password, use_ssl=False, **kwargs):
         try:
-            self.server = IMAPClient(server,use_uid=True,ssl=use_ssl)
-            self.server.login(username,password)
+            self.server = IMAPClient(server, use_uid=True, ssl=use_ssl)
+            self.server.login(username, password)
         except Exception as e:
             return (False, e.message)
         return (True, 'Login Successful')
