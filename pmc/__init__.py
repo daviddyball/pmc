@@ -14,14 +14,12 @@ class Main(object):
         """
         self.palette = [('reversed',    'standout',''),
                         ('normal',      'white','black'),
-                        ('highlighted', 'black','white'),
-                        ]
-
+                        ('highlighted', 'black','white')]
         self.stack = []
 
         if 'debug' in kwargs:
             if kwargs['debug']:
-                self.stack.append(EmailView(self,TestProvider()))
+                self.stack.append(EmailView(self, TestProvider()))
                 #embed_ipython_kernel(self)
             else:
                 self.stack.append(LoginView(self))
