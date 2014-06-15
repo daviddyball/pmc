@@ -1,9 +1,10 @@
-from email import email
-from imapclient import IMAPClient
 import getpass
 import os
+from email import email
+from imapclient import IMAPClient
+from pmc.providers.base import BaseProvider
 
-class IMAPProvider(object):
+class IMAPProvider(BaseProvider):
     def login(self, server, username, password, use_ssl=False, **kwargs):
         try:
             self.server = IMAPClient(server, use_uid=True, ssl=use_ssl)
@@ -75,9 +76,25 @@ class IMAPProvider(object):
             - email.email encoded RFC822 message
         """
         if folder in self.list_folders():
-            select_info = self.server.select_folder(folder)
             raw_message = self.server.fetch(uid,['FLAGS','RFC822'])[uid]
             return {'uid':uid,
                     'folder':folder,
                     'flags':raw_message['FLAGS'],
                     'email':email.message_from_string(raw_message['RFC822'])}
+
+    def get_message_headers(self, folder, uid):
+        """
+        Returna  list of key,val headersfor a given message
+
+        :param folder: The folder containing the message
+        :param uid: The ID of the message
+
+        :returns: List object containing key/vals for each
+            header
+        """
+        if folder in self.list_folders():
+            raw_message = self.server.fetch(uid,['FLAGS','RFC822'])[uid]
+            return email.message_from_string(raw_message['RFC822']).items()
+
+    def list_messages_in_folder(self):
+        pass

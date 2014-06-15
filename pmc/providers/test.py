@@ -1,6 +1,7 @@
 import email
+from pmc.providers.base import BaseProvider
 
-class TestProvider(object):
+class TestProvider(BaseProvider):
     def login(self, server, username, password, use_ssl=False, **kwargs):
         return (True,'OK')
 

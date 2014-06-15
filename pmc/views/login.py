@@ -33,27 +33,33 @@ class LoginView(urwid.Frame):
         self.body = urwid.Filler(layout_columns)
 
     def do_login(self, button):
-        if self.validate_login_fields():
-            self.provider = IMAPProvider()
-            (result, msg) = self.provider.login(self.server.edit_text,
-                                                self.username.edit_text,
-                                                self.password.edit_text)
-            if result:
-                self.main.push_view(EmailView(self.main,self.provider))
-            else:
-                self.set_status('ERROR: %s' % msg)
-                del(self.provider)
+        self.set_status('Logging In....')
+        if not self.has_valid_login_details():
+            return
+        self.provider = IMAPProvider()
+        (result, msg) = self.provider.login(self.server.edit_text,
+                                            self.username.edit_text,
+                                            self.password.edit_text)
+        if result:
+            self.main.push_view(EmailView(self.main,self.provider))
+        else:
+            self.set_status('ERROR: %s' % msg)
+            del(self.provider)
 
-    def validate_login_fields(self):
+    def has_valid_login_details(self):
         if self.server.edit_text in (None, ''):
             self.set_status('ERROR: Server Name is Required')
             self.body.focus_item = self.server
+            return False
         elif self.username.edit_text in (None,''):
             self.set_status('ERROR: Username is Required')
-            self.dialog.focus_item = self.username
-        elif self.password in (None,''):
+            self.body.focus_item = self.username
+            return False
+        elif self.password.edit_text in (None,''):
             self.set_status('ERROR: Password is Required')
-            self.dialog.focus_item = self.password
+            self.body.focus_item = self.password
+            return False
+        return True
 
     def set_status(self, message):
         self.footer.set_text(message)
