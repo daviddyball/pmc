@@ -95,3 +95,6 @@ class IMAPProvider(BaseProvider):
         if folder in self.list_folders():
             raw_message = self.server.fetch(uid,['FLAGS','RFC822'])[uid]
             return email.message_from_string(raw_message['RFC822']).items()
+
+    def list_messages_in_folder(self):
+        pass

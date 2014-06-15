@@ -1,5 +1,10 @@
+"""Base Mail Provider Class for PMC"""
+import abc
+
 class BaseProvider(object):
-    """Base Mail Provider Class for PMC"""
+    __metaclass__ = abc.ABCMeta
+
+    @abc.abstractmethod
     def list_folders(self):
         """
         List all folders in the remote backend
@@ -8,6 +13,7 @@ class BaseProvider(object):
         """
         pass
 
+    @abc.abstractmethod
     def list_messages_in_folder(self, folder):
         """
         List all messages in a specific backend folder
@@ -18,6 +24,7 @@ class BaseProvider(object):
         """
         pass
 
+    @abc.abstractmethod
     def get_folder_status(self, folder):
         """
         Return information about a given folder
@@ -27,6 +34,7 @@ class BaseProvider(object):
         """
         pass
 
+    @abc.abstractmethod
     def get_message(self, folder, uid):
         """
         Return a dict object for a given message
@@ -46,6 +54,7 @@ class BaseProvider(object):
         """
         pass
 
+    @abc.abstractmethod
     def get_message_headers(self, folder, uid):
         """
         Return a dict of key,val headers for the given message id.
