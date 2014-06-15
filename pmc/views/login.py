@@ -33,6 +33,7 @@ class LoginView(urwid.Frame):
         self.body = urwid.Filler(layout_columns)
 
     def do_login(self, button):
+        self.set_status('Logging In....')
         if self.validate_login_fields():
             self.provider = IMAPProvider()
             (result, msg) = self.provider.login(self.server.edit_text,
@@ -43,6 +44,8 @@ class LoginView(urwid.Frame):
             else:
                 self.set_status('ERROR: %s' % msg)
                 del(self.provider)
+        else:
+            self.set_status('Invalid Form')
 
     def validate_login_fields(self):
         if self.server.edit_text in (None, ''):
@@ -54,6 +57,7 @@ class LoginView(urwid.Frame):
         elif self.password in (None,''):
             self.set_status('ERROR: Password is Required')
             self.dialog.focus_item = self.password
+        return True
 
     def set_status(self, message):
         self.footer.set_text(message)
